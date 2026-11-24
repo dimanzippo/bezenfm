@@ -1,0 +1,33 @@
+# Обновляет src/donates.json свежим ответом api.vkdonate.ru.
+# Файл в репозитории сайта (GitHub Pages): .github/workflows/donates.yml
+# (внутрь zip'а его кладёт сборочный скрипт из этого шаблона).
+# Ключ только на чтение списка донатов.
+name: refresh donates snapshot
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch donates
+        run: |
+          curl -sS "https://api.vkdonate.ru?key=b277c9ec10315a569eb8&action=donates&count=50&sort=date&order=desc" -o /tmp/d.json
+          python3 -c "import json; d=json.load(open('/tmp/d.json')); assert d.get('success') and isinstance(d.get('donates'), list)"
+          cp /tmp/d.json src/donates.json
+      - name: commit if changed
+        run: |
+          git config user.name "bezenfm-bot"
+          git config user.email "bezenfm-bot@users.noreply.github.com"
+          git add src/donates.json
+          if ! git diff --cached --quiet; then
+            git commit -m "update donates snapshot"
+            git push
+          fi

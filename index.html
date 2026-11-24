@@ -154,6 +154,13 @@
   .volRow .vol::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
     background: #fff; border: 2px solid #7c5cff; box-shadow: 0 0 10px rgba(124,92,255,0.8); cursor: pointer; }
   .volRow .vol::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #7c5cff; cursor: pointer; }
+  /* толстый ползунок под палец на тачскринах */
+  @media (pointer: coarse) {
+    .volRow { gap: 14px; }
+    .volRow .vol { height: 10px; }
+    .volRow .vol::-webkit-slider-thumb { width: 24px; height: 24px; border-width: 3px; }
+    .volRow .vol::-moz-range-thumb { width: 22px; height: 22px; border-width: 3px; }
+  }
 
   .statusLine { text-align: center; font-size: 11px; color: #7e8db8; margin-top: 8px; min-height: 15px; }
   .scheduleLine { text-align: center; font-size: 10.5px; color: #6f7ea8; margin-top: 7px; min-height: 14px; letter-spacing: 0.3px; }

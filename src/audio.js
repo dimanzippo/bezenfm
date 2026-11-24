@@ -48,8 +48,13 @@ Bezen.audio = (function () {
   }
 
   function applyVolume() {
-    audio.volume = vol;
-    if (masterGain) masterGain.gain.value = useProxyFor(sourceIdx) ? vol : 1;
+    // Громкость крутим через WebAudio-гейн, а не через audio.volume:
+    // мобильные браузеры (особенно iOS) игнорируют audio.volume,
+    // а гейн работает везде. Весь звук идёт через цепочку
+    // audio-element/proxy-buffers -> analyser -> masterGain -> выход,
+    // поэтому одного гейна хватает обоим трактам.
+    if (masterGain) masterGain.gain.value = vol;
+    try { audio.volume = 1; } catch (e) {}
   }
 
   function setSource(i) {
@@ -81,6 +86,9 @@ Bezen.audio = (function () {
     emit("source", s.kind);
     if (s.kind === "backup") {
       probeTimer = setInterval(probeMain, Bezen.CFG.probeMs);
+      // первая проверка сразу, а не через 45 с: если основная уже в эфире
+      // (вещает дольше расписания), переключимся за секунды, а не минуту
+      setTimeout(() => { if (sourceIdx === BACKUP_IDX) probeMain(); }, 3000);
     }
   }
 
@@ -153,7 +161,11 @@ Bezen.audio = (function () {
 
   async function probeMain() {
     if (probing) return;
-    if (sourceIdx !== BACKUP_IDX || !isOnAir()) return;
+    // Возвращаемся на основной, как только он оживает, — даже вне
+    // расписания: станция иногда вещает дольше, а расписание лишь
+    // подсказывает, с чего стартовать. Проверка дешёвая (короткий
+    // пробный коннект), ночью при выключенной станции просто не срабатывает.
+    if (sourceIdx !== BACKUP_IDX) return;
     probing = true;
     let ok = false;
     try {
@@ -162,7 +174,7 @@ Bezen.audio = (function () {
       ok = false;
     }
     probing = false;
-    if (ok && sourceIdx === BACKUP_IDX && isOnAir()) {
+    if (ok && sourceIdx === BACKUP_IDX) {
       proxyFail = 0;
       setSource(0);
     }

@@ -60,11 +60,13 @@
   if (!isFinite(vol)) vol = 85;
   Bezen.audio.setVolume(vol / 100);
   volInput.value = vol;
-  volInput.addEventListener("input", () => {
+  volInput.addEventListener("input", onVol);
+  volInput.addEventListener("change", onVol);
+  function onVol() {
     vol = +volInput.value;
     Bezen.audio.setVolume(vol / 100);
-    localStorage.setItem("bezen_vol", String(vol));
-  });
+    try { localStorage.setItem("bezen_vol", String(vol)); } catch (e) {}
+  }
   volBtn.addEventListener("click", () => {
     if (vol > 0) { lastVol = vol; vol = 0; }
     else { vol = lastVol || 85; }

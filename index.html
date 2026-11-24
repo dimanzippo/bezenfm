@@ -1,0 +1,379 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #04071a;
+    color: #eaf0ff;
+    font-family: "Montserrat", system-ui, sans-serif;
+    text-align: left;
+    overflow: hidden;
+  }
+  #skyCanvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+  .vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(3,5,18,0.55) 100%); }
+  #stage { position: relative; z-index: 2; height: 100vh; height: 100dvh;
+    display: flex; flex-direction: column; padding: 14px 16px 0;
+    transition: opacity 0.9s ease 0.05s; }
+  body:has(#intro:not(.done)) #stage { opacity: 0; pointer-events: none; }
+
+  header.brand { display: flex; align-items: center; gap: 12px; padding: 4px 10px; }
+  .brandbox {
+    display: inline-flex; align-items: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 18px;
+    padding: 9px 18px 9px 13px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .brandbox .logotype { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .brandbox .word { min-width: 0; }
+  .brandLogo { flex: 0 0 auto; filter: drop-shadow(0 0 10px rgba(124,92,255,0.6)); }
+  .brandLogo .logoWaves path { animation: logoWave 2.2s ease-in-out infinite; }
+  .brandLogo .logoWaves path:nth-child(2) { animation-delay: 0.4s; }
+  .brandLogo .logoWaves path:nth-child(3) { animation-delay: 0.8s; }
+  @keyframes logoWave { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+  .brandbox h1 {
+    font-family: "Unbounded", sans-serif; font-weight: 800; font-size: 21px;
+    letter-spacing: 0.5px; line-height: 1; white-space: nowrap;
+    background: linear-gradient(90deg, #ffffff 0%, #d3dcff 60%, #b3c2ff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .brandbox h1 .fm {
+    display: inline-block; margin-left: 8px;
+    font-size: 0.6em; font-weight: 800; letter-spacing: 1.5px;
+    background: linear-gradient(90deg, #ffd166, #ff7ad9);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    transform: translateY(-0.14em);
+  }
+  .brandbox .sub {
+    margin-top: 4px;
+    font-size: 10px; font-weight: 600; letter-spacing: 1.1px; text-transform: uppercase;
+    color: #8fa2d4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .onair { margin-left: auto; flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    padding: 7px 14px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: 1.6px; color: #b6c2e4; }
+  .onair .dot { width: 8px; height: 8px; border-radius: 50%; background: #7b849a; }
+  .onair.live { border-color: rgba(61,255,160,0.35); color: #bfffe0; }
+  .onair.live .dot { background: #3dffa0; box-shadow: 0 0 9px #3dffa0; animation: pulseDot 1.1s infinite; }
+  .onair.conn { border-color: rgba(255,209,102,0.4); color: #ffe6b0; }
+  .onair.conn .dot { background: #ffd166; box-shadow: 0 0 9px #ffd166; animation: pulseDot 0.7s infinite; }
+  .onair.wait { border-color: rgba(126,140,255,0.35); color: #c6cdff; }
+  .onair.wait .dot { background: #7e8cff; box-shadow: 0 0 9px #7e8cff; }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+
+  .player { position: relative; width: min(420px, 92vw);
+    background: rgba(11,16,42,0.5); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.09); border-radius: 30px;
+    padding: 22px 26px 18px;
+    box-shadow: 0 22px 60px rgba(0,0,0,0.55),
+      0 0 90px rgba(124,92,255,0.22),
+      0 0 160px rgba(255,61,129,0.12),
+      0 0 calc(16px + var(--beat) * 46px) rgba(124,92,255,calc(0.16 + var(--beat) * 0.4)),
+      0 0 calc(34px + var(--beat) * 80px) rgba(255,61,129,calc(0.08 + var(--beat) * 0.25)); }
+  .player::after { content: ""; position: absolute; inset: 0; border-radius: 30px; pointer-events: none;
+    background: radial-gradient(80% 60% at 50% 0%, rgba(255,255,255,0.07), transparent 60%); }
+
+  .vinyl { width: 132px; height: 132px; margin: 0 auto 10px; border-radius: 50%; position: relative;
+    isolation: isolate;
+    background: radial-gradient(circle at 50% 50%, #1d1d25 0%, #0b0b10 72%);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.07); }
+  .vinyl::before { content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0 1px, transparent 1px 3px); }
+  .vinyl .label { position: absolute; left: 50%; top: 50%;
+    width: 62px; height: 62px; margin: -31px 0 0 -31px; border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.45), 0 0 0 3px rgba(255,255,255,0.06); }
+  .vinyl .label img { width: 100%; height: 100%; object-fit: cover;
+    filter: saturate(1.05) contrast(1.02); }
+  .vinyl .hole { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 35%, #52586b, #05060b 78%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.2), 0 0 1px rgba(0,0,0,0.9); }
+  .vinyl::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    mix-blend-mode: screen;
+    background: linear-gradient(118deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.03) 28%, transparent 54%); }
+  .vinyl .shine { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
+    -webkit-mask: radial-gradient(circle at 50% 50%, transparent 46%, #000 62%);
+    mask: radial-gradient(circle at 50% 50%, transparent 46%, #000 62%);
+    background:
+      conic-gradient(from 0deg,
+        rgba(255,255,255,0) 0deg,
+        rgba(178,198,255,0.10) 16deg,
+        rgba(255,255,255,0.46) 44deg,
+        rgba(255,196,240,0.22) 60deg,
+        rgba(255,255,255,0) 92deg,
+        rgba(255,255,255,0) 360deg); }
+  body.playing .vinyl { animation: spin 4.2s linear infinite; }
+  body.playing .vinyl .label { animation: spinRev 4.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spinRev { to { transform: rotate(-360deg); } }
+
+  .meta { text-align: center; min-height: 52px; }
+  .meta .nowLabel { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #7e8db8; }
+  .meta .now { font-size: 14.5px; font-weight: 600; margin-top: 5px; min-height: 21px; color: #dfe6ff;
+    text-shadow: 0 0 18px rgba(126,92,255,0.55);
+    max-width: 100%; overflow: hidden; white-space: nowrap; }
+  .meta .now .npInner { display: inline-block; vertical-align: top; }
+  .meta .now.scrolling { text-align: left; }
+  .meta .now .npArtist { color: #93a6dd; font-weight: 600; }
+  .meta .now .npSep { color: #6d7ba6; font-weight: 400; }
+  .meta .now .npSong { color: #f2f5ff; font-weight: 700; }
+  .meta .now.npIn .npInner { animation: npIn 0.45s ease both; }
+  .meta .now.scrolling .npInner { animation: npScroll var(--npDur, 8s) ease-in-out infinite alternate; }
+  @keyframes npIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+  @keyframes npScroll { from { transform: translateX(0); } to { transform: translateX(var(--npDist, 0px)); } }
+
+  .controls { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 8px; }
+  .ctl { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.05); color: #cfd8f5; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: transform 0.15s, background 0.15s; }
+  .ctl:hover { transform: scale(1.08); background: rgba(255,255,255,0.1); }
+  .ctl svg { width: 19px; height: 19px; }
+  .play { width: 74px; height: 74px; border-radius: 50%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #7c5cff, #ff3d81); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 28px rgba(124,92,255,0.45), 0 0 calc(12px + var(--beat) * 32px) rgba(255,61,129,0.55);
+    transition: transform 0.15s; }
+  .play:hover { transform: scale(1.06); }
+  .play svg { width: 28px; height: 28px; }
+  #iconPause { display: none; }
+  body.playing #iconPlay { display: none; }
+  body.playing #iconPause { display: block; }
+  #volBtn.muted { color: #5a6486; }
+
+  .volRow { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .volRow .vol { -webkit-appearance: none; appearance: none; flex: 1; height: 4px; border-radius: 4px; outline: none;
+    background: linear-gradient(90deg, #7c5cff, #ff3d81); cursor: pointer; }
+  .volRow .vol::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 2px solid #7c5cff; box-shadow: 0 0 10px rgba(124,92,255,0.8); cursor: pointer; }
+  .volRow .vol::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #7c5cff; cursor: pointer; }
+
+  .statusLine { text-align: center; font-size: 11px; color: #7e8db8; margin-top: 8px; min-height: 15px; }
+  .scheduleLine { text-align: center; font-size: 10.5px; color: #6f7ea8; margin-top: 7px; min-height: 14px; letter-spacing: 0.3px; }
+
+  .dons { width: min(420px, 92vw); position: relative;
+    display: flex; flex-direction: column; min-height: 0;
+    background: rgba(11,16,42,0.5); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.09); border-radius: 22px; overflow: hidden;
+    box-shadow: 0 18px 44px rgba(0,0,0,0.45), 0 0 70px rgba(124,92,255,0.12); }
+  .donsHead { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; width: 100%;
+    padding: 12px 15px; background: none; border: none; color: inherit; font: inherit;
+    text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .donsIcon { color: #ff5d9e; font-size: 13px; line-height: 1; transform: translateY(-1px);
+    filter: drop-shadow(0 0 8px rgba(255,61,129,0.75)); }
+  .donsTitle { font-size: 10.5px; font-weight: 700; letter-spacing: 1.7px; text-transform: uppercase; color: #b9c5ea; white-space: nowrap; }
+  .donsStat { margin-left: auto; font-size: 10.5px; color: #8fa2d4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .donsChev { flex: 0 0 auto; color: #7e8db8; font-size: 11px; transition: transform 0.25s ease; }
+  .dons.closed .donsChev { transform: rotate(-90deg); }
+  .donsBody { flex: 1 1 auto; min-height: 0; max-height: min(29vh, 208px); overflow-y: auto; overscroll-behavior: contain;
+    padding: 0 10px 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+  .dons.closed { flex: 0 0 auto; }
+  .dons.closed .donsBody { display: none; }
+  .donsBody::-webkit-scrollbar { width: 6px; }
+  .donsBody::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 3px; }
+  .donsList { list-style: none; display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; }
+  .don { display: flex; align-items: flex-start; gap: 10px; padding: 8px 11px; border-radius: 14px;
+    background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.06); }
+  .don.new { animation: donGlow 3.6s ease; }
+  @keyframes donGlow {
+    0% { background: rgba(255,61,129,0.28); border-color: rgba(255,61,129,0.55); }
+    55% { background: rgba(255,61,129,0.14); border-color: rgba(255,61,129,0.28); }
+    100% { background: rgba(255,255,255,0.045); border-color: rgba(255,255,255,0.06); } }
+  .donSum { flex: 0 0 auto; font-family: "Unbounded", sans-serif; font-size: 12px; font-weight: 600; line-height: 1.5;
+    background: linear-gradient(90deg, #ffd166, #ff7ad9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .donBody { flex: 1; min-width: 0; }
+  .donMsg { font-size: 12.5px; line-height: 1.35; color: #e7ecff; overflow-wrap: anywhere; }
+  .donMsg.none { color: #78849f; font-style: italic; font-size: 11.5px; }
+  .donMeta { margin-top: 3px; font-size: 10px; color: #7e8db8; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .donMeta a { color: #9fb2e8; text-decoration: none; border-bottom: 1px dotted rgba(159,178,232,0.45); }
+  .donMeta a:hover { color: #cfd9ff; }
+  .donMeta a.donName { color: #b9c8ff; font-weight: 600; border-bottom-color: rgba(159,178,232,0.25); }
+  .donMeta .anon { color: #6f7ea8; }
+  .donsEmpty { text-align: center; font-size: 11.5px; color: #7e8db8; padding: 4px 6px 8px; }
+  .donsSend { display: block; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+    color: #ffb8d6; text-decoration: none; padding: 7px 6px 3px; }
+  .donsSend:hover { color: #fff; }
+  .dons.flash { animation: donsFlash 2.4s ease; }
+  @keyframes donsFlash {
+    0% { box-shadow: 0 18px 44px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,61,129,0.75), 0 0 80px rgba(255,61,129,0.55); }
+    100% { box-shadow: 0 18px 44px rgba(0,0,0,0.45), 0 0 70px rgba(124,92,255,0.12); } }
+
+  #cityCanvas { display: block; width: 100%; height: clamp(150px, 30vh, 300px); }
+
+  #intro { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(120% 120% at 50% 30%, rgba(10,14,40,0.5), rgba(4,7,24,0.9) 72%);
+    transition: opacity 0.8s ease; }
+  #intro.done { opacity: 0; pointer-events: none; }
+  .introInner { text-align: center; padding: 24px; max-width: 92vw; }
+  .introInner .logoPlate {
+    width: clamp(150px, 30vw, 176px); aspect-ratio: 1 / 1; margin: 0 auto 18px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .introInner .logoPlate img { width: 100%; height: auto;
+    filter: drop-shadow(0 14px 30px rgba(4,7,24,0.5)) drop-shadow(0 0 22px rgba(124,92,255,0.45)); }
+  .introInner .place { margin-top: 18px; color: #9fadd6; font-size: 12px; letter-spacing: 1.8px; text-transform: uppercase; }
+  #startBtn { margin-top: 28px; font-family: "Unbounded", sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 1.5px;
+    color: #fff; background: linear-gradient(135deg, #7c5cff, #ff3d81); border: none;
+    padding: 17px 36px; border-radius: 999px; cursor: pointer;
+    animation: startPulse 2.2s infinite; transition: transform 0.15s; }
+  #startBtn:hover { transform: scale(1.05); }
+  @keyframes startPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,61,129,0.45); }
+    70% { box-shadow: 0 0 0 24px rgba(255,61,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,61,129,0); } }
+  .introInner .hint { margin-top: 16px; color: #8290bd; font-size: 11px; }
+
+  @media (max-width: 640px) {
+    .brandbox { padding: 7px 13px 7px 10px; border-radius: 15px; }
+    .brandbox h1 { font-size: 17px; }
+    .brandbox .sub { font-size: 8.5px; letter-spacing: 0.8px; }
+    .player { padding: 16px 18px 14px; border-radius: 24px; }
+    .vinyl { width: 108px; height: 108px; }
+    .play { width: 62px; height: 62px; }
+    #cityCanvas { height: 160px; }
+    .donsHead { padding: 10px 13px; }
+    .donsBody { max-height: min(26vh, 176px); padding: 0 8px 8px; }
+    .don { padding: 7px 9px; border-radius: 12px; }
+    .donSum { font-size: 11.5px; }
+    .donMsg { font-size: 12px; }
+  }
+  @media (max-width: 520px) {
+    header.brand { gap: 8px; padding: 4px 6px; }
+    .brandbox { padding: 7px 11px 7px 9px; }
+    .brandbox .brandLogo { width: 27px; height: 27px; }
+    .brandbox .logotype { gap: 9px; }
+    .brandbox .sub { display: none; }
+    .brandbox h1 { font-size: 15px; }
+    .onair { padding: 6px 10px; font-size: 9px; letter-spacing: 1.1px; gap: 6px; }
+  }
+  @media (max-height: 800px) {
+    #cityCanvas { height: clamp(104px, 17vh, 190px); }
+    .donsBody { max-height: min(20vh, 132px); }
+  }
+  @media (max-height: 760px) {
+    .player { padding: 14px 22px 12px; }
+    .vinyl { width: 100px; height: 100px; margin-bottom: 6px; }
+    .vinyl .label { width: 48px; height: 48px; margin: -24px 0 0 -24px; }
+    .meta { min-height: 42px; }
+    .meta .now { font-size: 13px; }
+    .play { width: 60px; height: 60px; }
+    .ctl { width: 38px; height: 38px; }
+    main { gap: 8px; }
+    #eqCanvas { height: clamp(52px, 9vh, 80px); }
+    .donsHead { padding: 9px 13px; }
+    .donsBody { max-height: min(18vh, 118px); }
+  }
+  @media (max-height: 640px) {
+    .vinyl { width: 96px; height: 96px; margin-bottom: 6px; }
+    .meta { min-height: 42px; }
+    main { gap: 8px; }
+    #cityCanvas { height: 112px; }
+    .donsBody { max-height: 104px; }
+  }
+</style>
+
+<link rel="icon" type="image/png" href="src/logo.png">
+<canvas id="skyCanvas"></canvas>
+<div class="vignette"></div>
+
+<div id="stage">
+  <header class="brand">
+    <div class="brandbox">
+      <div class="logotype">
+        <svg class="brandLogo" viewBox="0 0 48 48" width="34" height="34" aria-hidden="true">
+          <g fill="none" stroke="#c9d4ff" stroke-width="2.2" stroke-linecap="round">
+            <path d="M24 44 V20"/>
+            <path d="M20 44 L23.5 20 M28 44 L24.5 20"/>
+            <path d="M17 28 H31"/>
+            <path d="M17 28 l7 7 M31 28 l-7 7"/>
+            <circle cx="24" cy="16" r="2.4" fill="#ff3d81" stroke="none"/>
+          </g>
+          <g class="logoWaves" fill="none" stroke="#7c5cff" stroke-width="2" stroke-linecap="round">
+            <path d="M20.5 11 a5 5 0 0 1 7 0"/>
+            <path d="M17 11 a9 9 0 0 1 14 0"/>
+            <path d="M13.5 11 a13 13 0 0 1 21 0"/>
+          </g>
+        </svg>
+        <div class="word">
+          <h1>BEZEN<span class="fm">FM</span></h1>
+          <p class="sub" data-cfg="tagline">Первая радиостанция Безенчука</p>
+        </div>
+      </div>
+    </div>
+    <div class="onair off" id="onairBadge"><span class="dot"></span><span id="onairText">НЕТ СИГНАЛА</span></div>
+  </header>
+
+  <main>
+    <div class="player">
+      <div class="vinyl">
+        <div class="label" aria-label="BEZEN FM"><img src="src/logo-disc.webp" alt="BEZEN FM"></div>
+        <div class="hole"></div>
+        <div class="shine"></div>
+      </div>
+      <div class="meta">
+        <div class="nowLabel">сейчас играет</div>
+        <div class="now" id="nowEl"><span class="npInner" id="npInner">Прямой эфир из Безенчука</span></div>
+      </div>
+      <div class="controls">
+        <button class="ctl" id="volBtn" title="Громкость">
+          <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor"/><path d="M16 8a5 5 0 0 1 0 8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <button class="play" id="playBtn" title="Играть / Пауза">
+          <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
+          <svg id="iconPause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="#fff"/></svg>
+        </button>
+      </div>
+      <div class="volRow">
+        <input class="vol" id="volInput" type="range" min="0" max="100" value="85">
+      </div>
+      <div class="statusLine" id="statusLine"></div>
+      <div class="scheduleLine" id="scheduleLine"></div>
+    </div>
+
+    <section class="dons" id="donsCtn">
+      <button class="donsHead" id="donsToggle" aria-expanded="true" aria-controls="donsBody">
+        <span class="donsIcon" aria-hidden="true">&#9829;</span>
+        <span class="donsTitle">Приветы в эфир</span>
+        <span class="donsStat" id="donsStat">&hellip;</span>
+        <span class="donsChev" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="donsBody" id="donsBody">
+        <ul class="donsList" id="donsList"></ul>
+        <p class="donsEmpty" id="donsEmpty">Пока ни одного привета &mdash; стань первым!</p>
+        <a class="donsSend" id="donsSend" href="#" target="_blank" rel="noopener noreferrer" hidden>Передать привет &#8594;</a>
+      </div>
+    </section>
+  </main>
+
+  <canvas id="cityCanvas"></canvas>
+</div>
+
+<div id="intro">
+  <div class="introInner">
+    <div class="logoPlate"><img src="src/logo-badge.webp" alt="BEZEN FM"></div>
+    <p class="place">Безенчук · <span data-cfg="regionName">Самарская область</span></p>
+    <button id="startBtn">▶&nbsp; Включить радио</button>
+    <p class="hint">ночное небо · звёзды · метеоры · цветомузыка в такт музыке</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vkontakte/vk-bridge@2/dist/browser.min.js"></script>
+<script src="src/vk.js"></script>
+<script src="src/donors.js"></script>
+<script src="src/standalone-config.js"></script>
+<script src="src/config.js"></script>
+<script src="src/sky.js"></script>
+<script src="src/city.js"></script>
+<script src="src/proxyplayer.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/nowplaying.js"></script>
+<script src="src/donations.js"></script>
+<script src="src/player.js"></script>

@@ -98,6 +98,27 @@ Bezen.audio = (function () {
   }
 
   let probing = false;
+  let checkBusy = false, mainKnownAlive = false, mainKnownAt = 0;
+  const MAIN_FRESH_MS = 120000;
+
+  // Тихая проверка основного потока (без звука): muted-аудио и fetch
+  // разрешены до жеста пользователя, поэтому гоняем её заранее при
+  // загрузке страницы — чтобы кнопка play сразу включала правильный
+  // источник и резервный поток ни на секунду не «пробивал» в эфир.
+  async function checkMain() {
+    if (checkBusy) return mainKnownAlive;
+    checkBusy = true;
+    let ok = false;
+    try {
+      ok = useProxyFor(0) ? await probeHttpMain() : await probeNativeMain();
+    } catch (e) {
+      ok = false;
+    }
+    checkBusy = false;
+    mainKnownAlive = ok;
+    mainKnownAt = Date.now();
+    return ok;
+  }
 
   // Звук может не пойти по разным причинам: адрес ретрансляции висит, сервер не отдаёт
   // данные, браузер запретил автоплей. Событие "error" при этом часто не приходит вообще,
@@ -168,16 +189,30 @@ Bezen.audio = (function () {
     if (sourceIdx !== BACKUP_IDX) return;
     probing = true;
     let ok = false;
-    try {
-      ok = useProxyFor(0) ? await probeHttpMain() : await probeNativeMain();
-    } catch (e) {
-      ok = false;
-    }
+    try { ok = await checkMain(); } catch (e) { ok = false; }
     probing = false;
     if (ok && sourceIdx === BACKUP_IDX) {
       proxyFail = 0;
       setSource(0);
     }
+  }
+
+  let prescanTimer = null;
+  // Запускается один раз при загрузке страницы (см. player.js): заранее
+  // выясняет, жив ли основной, и периодически освежает знание, пока
+  // воспроизведение не стартовало.
+  function prescan() {
+    if (started) return;
+    checkMain().catch(() => {});
+    if (prescanTimer) return;
+    prescanTimer = setInterval(() => {
+      if (started) {
+        clearInterval(prescanTimer);
+        prescanTimer = null;
+        return;
+      }
+      if (!checkBusy) checkMain().catch(() => {});
+    }, Bezen.CFG.probeMs);
   }
 
   async function probeHttpMain() {
@@ -290,7 +325,8 @@ Bezen.audio = (function () {
       Bezen.proxyPlayer.on("playing", () => { proxyHadSuccess = true; playing = true; markProgress(); emit("playing"); });
       Bezen.proxyPlayer.on("error", onProxyError);
     }
-    setSource(isOnAir() ? 0 : BACKUP_IDX);
+    const mainFresh = mainKnownAlive && Date.now() - mainKnownAt < MAIN_FRESH_MS;
+    setSource(isOnAir() || mainFresh ? 0 : BACKUP_IDX);
   }
 
   function onProxyError() {
@@ -360,7 +396,7 @@ Bezen.audio = (function () {
       volume: audio.volume, muted: audio.muted, ct: +Number(audio.currentTime || 0).toFixed(1),
     };
     return {
-      started, wantsPlay, playing, blocked, progressed, dataSeen, sourceIdx, stallAttempts,
+      started, wantsPlay, playing, blocked, progressed, dataSeen, sourceIdx, stallAttempts, mainKnownAlive,
       watchdog: !!watchdog, sinceSrcMs: Date.now() - srcStartT, kind: streams[sourceIdx].kind,
       ctx: ctx ? ctx.state : null, el, events: evLog.slice(-14),
     };
@@ -473,7 +509,7 @@ Bezen.audio = (function () {
   function bassHitValue() { return bassHitV; }
 
   return {
-    start, play, pause, retryNow, forceMain, isPlaying, isBlocked, debugState, currentKind, setVolume,
+    start, prescan, play, pause, retryNow, forceMain, isPlaying, isBlocked, debugState, currentKind, setVolume,
     on, frame, spectrum, bass, context, analyserNode, beatNode, time, bassHitValue,
   };
 })();

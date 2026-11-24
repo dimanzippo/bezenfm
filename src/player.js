@@ -54,6 +54,9 @@
     donorNames: CFG.donorNames,
   });
   Bezen.donations.start();
+  // Тихий прескан основного потока: к моменту нажатия play уже знаем,
+  // какой источник включать, и резерв не пробивается ни на секунду.
+  try { Bezen.audio.prescan(); } catch (e) {}
 
   let lastVol = 85;
   let vol = parseFloat(localStorage.getItem("bezen_vol") || "85");
